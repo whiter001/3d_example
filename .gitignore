@@ -1,0 +1,17 @@
+# 编译产物
+3d_example
+raylib_doom
+*.exe
+*.tmp
+
+# V 临时文件
+*.tmp.c
+.v/
+
+# macOS
+.DS_Store
+
+# 编辑器
+.vscode/
+.idea/
+*.swp
