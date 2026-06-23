@@ -89,7 +89,7 @@ pub fn draw_ammo_panel(player Player) {
 }
 
 // 右上角: 关卡名 + 击杀数 + 剩余敌人
-pub fn draw_status_panel(game Game) {
+pub fn draw_status_panel(game &Game) {
 	sw := r.get_screen_width()
 	text := '${game.level.name}'
 	w := r.measure_text(text, 22)
@@ -117,14 +117,15 @@ pub fn draw_damage_overlay(player Player) {
 }
 
 // 关卡过渡 / 死亡 / 胜利全屏文字
-pub fn draw_state_overlay(game Game) {
+pub fn draw_state_overlay(game &Game) {
 	match game.state {
 		.level_transition {
 			mut alpha := u8(220 - game.state_timer * 60)
 			if int(alpha) < 0 {
 				alpha = 0
 			}
-			r.clear_background(r.Color{0, 0, 0, alpha})
+			r.draw_rectangle(0, 0, r.get_screen_width(), r.get_screen_height(),
+				r.Color{0, 0, 0, alpha})
 			text := 'LEVEL ${game.current_level_idx + 1}'
 			w := r.measure_text(text, 64)
 			r.draw_text(text, r.get_screen_width() / 2 - w / 2, r.get_screen_height() / 2 - 60, 64,
@@ -133,7 +134,7 @@ pub fn draw_state_overlay(game Game) {
 			sw := r.measure_text(sub, 28)
 			r.draw_text(sub, r.get_screen_width() / 2 - sw / 2, r.get_screen_height() / 2 + 10, 28,
 				r.Color{230, 230, 230, 230})
-			r.draw_text('Press ENTER or click to start', r.get_screen_width() / 2 - 120,
+			r.draw_text('Get ready...', r.get_screen_width() / 2 - 60,
 				r.get_screen_height() / 2 + 60, 18, r.Color{200, 200, 200, 200})
 		}
 		.dead {
@@ -167,7 +168,7 @@ pub fn draw_state_overlay(game Game) {
 //    2. 武器在视野右下角: forward + (right * 0.6) - (up * 0.4)
 //    3. 加走路晃动 + 后坐力
 //    4. 朝向相机正前方
-pub fn draw_weapon(game Game) {
+pub fn draw_weapon(game &Game) {
 	cam := game.camera
 	// forward, right, up
 	fwd := vec3_normalize(r.Vector3{

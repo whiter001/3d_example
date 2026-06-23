@@ -98,7 +98,12 @@ fn update_game(mut game Game, dt f32) {
 			game.hits_display = game.hits_display.filter(it.life > 0)
 
 			// 检查关卡完成
-			alive := game.enemies.filter(it.state != .dead && it.state != .dying).len
+			mut alive := 0
+			for e in game.enemies {
+				if e.state != .dead && e.state != .dying {
+					alive++
+				}
+			}
 			if alive == 0 && game.enemies.len > 0 {
 				game.state = .level_transition
 				game.state_timer = 0
@@ -155,6 +160,10 @@ fn perform_player_fire(mut game Game) {
 		if e.state == .dead || e.state == .dying {
 			continue
 		}
+		// 忽略被墙体遮挡的敌人, 避免穿墙命中
+		if !game.has_line_of_sight(game.player.pos, e.pos) {
+			continue
+		}
 		half := e.size / 2.0
 		bbox := r.BoundingBox{
 			min: r.Vector3{e.pos.x - half, e.pos.y - half, e.pos.z - half}
@@ -192,7 +201,7 @@ fn is_player_moving(_ Game) bool {
 }
 
 // 主渲染: 3D 场景 + 武器 + HUD + 状态覆盖
-fn draw_game(game Game) {
+fn draw_game(game &Game) {
 	r.begin_drawing()
 	{
 		r.clear_background(r.Color{20, 20, 30, 255})

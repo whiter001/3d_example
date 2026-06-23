@@ -281,3 +281,46 @@ pub fn (game &Game) pixel_is_wall(px int, py int) bool {
 		return game.level.pixels[py * game.level.width + px].r == 255
 	}
 }
+
+// 检查从 from 到 to 的连线是否被墙体阻挡 (Bresenham 遍历地图像素)
+// 用于玩家射击与敌人 AI 视线判定, 避免隔墙命中
+pub fn (game &Game) has_line_of_sight(from r.Vector3, to r.Vector3) bool {
+	if !game.level.is_loaded() {
+		return false
+	}
+	lvl := game.level
+	// 与 is_walkable 保持一致的世界坐标 -> 像素坐标映射
+	px0 := int(from.x - lvl.map_position.x + 0.5)
+	py0 := int(from.z - lvl.map_position.z + 0.5)
+	px1 := int(to.x - lvl.map_position.x + 0.5)
+	py1 := int(to.z - lvl.map_position.z + 0.5)
+
+	mut x0 := px0
+	mut y0 := py0
+	x1 := px1
+	y1 := py1
+	dx := if x1 > x0 { x1 - x0 } else { x0 - x1 }
+	dy := if y1 > y0 { y1 - y0 } else { y0 - y1 }
+	sx := if x0 < x1 { 1 } else { -1 }
+	sy := if y0 < y1 { 1 } else { -1 }
+	mut err := dx - dy
+
+	for {
+		if game.pixel_is_wall(x0, y0) {
+			return false
+		}
+		if x0 == x1 && y0 == y1 {
+			break
+		}
+		e2 := 2 * err
+		if e2 > -dy {
+			err -= dy
+			x0 += sx
+		}
+		if e2 < dx {
+			err += dx
+			y0 += sy
+		}
+	}
+	return true
+}

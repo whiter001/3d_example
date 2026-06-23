@@ -165,8 +165,12 @@ pub fn (mut game Game) update_enemies(dt f32) {
 }
 
 // 敌人对玩家造成伤害 (由 update_enemies 在 attack 状态触发)
-fn (mut game Game) enemy_fire_on_player(_ &Enemy) {
+fn (mut game Game) enemy_fire_on_player(e &Enemy) {
 	if !game.player.is_alive() {
+		return
+	}
+	// 必须有视线才能命中, 避免隔墙射击
+	if !game.has_line_of_sight(e.pos, game.player.pos) {
 		return
 	}
 	// DOOM 风格接触伤害: 命中扣 8 HP, 玩家有 0.4 秒无敌避免被围殴秒死

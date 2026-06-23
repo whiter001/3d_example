@@ -76,9 +76,8 @@ pub fn (mut game Game) load_level(idx int) {
 	game.level = new_level_from_def(level_def)
 	game.current_level_idx = idx
 
-	// 重置玩家状态
-	game.player.hp = game.player.max_hp
-	game.player.ammo = game.player.max_ammo
+	// 重置玩家状态 (血量 / 弹药 / 备用弹 / 计时器 / 无敌等全部恢复)
+	game.player = new_player()
 	game.player.pos = game.level.player_spawn
 	game.camera.position = game.level.player_spawn
 	// 朝向关卡中心 (大致)
@@ -95,6 +94,9 @@ pub fn (mut game Game) load_level(idx int) {
 	for spawn_pos in game.level.enemy_spawns {
 		game.enemies << new_enemy(spawn_pos)
 	}
+
+	// 清除上一关遗留的命中标记
+	game.hits_display = []
 
 	game.state = .level_transition
 	game.state_timer = 0
