@@ -39,6 +39,7 @@ pub mut:
 	bob_phase            f32     // 走路晃动相位
 	was_moving           bool
 	invulnerable         f32     // 受击后的无敌时间
+	velocity_y           f32     // 垂直速度 (跳跃重力)
 }
 
 // 推进无敌倒计时
@@ -75,6 +76,7 @@ pub fn new_player() Player {
 		damage_flash:  0
 		bob_phase:     0
 		was_moving:    false
+		velocity_y:    0
 	}
 }
 

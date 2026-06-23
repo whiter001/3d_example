@@ -162,6 +162,9 @@ pub fn (mut game Game) update_enemies(dt f32) {
 			else {}
 		}
 	}
+
+	// 死亡动画结束后把尸体从数组移除,真正消失
+	game.enemies = game.enemies.filter(it.state != .dead)
 }
 
 // 敌人对玩家造成伤害 (由 update_enemies 在 attack 状态触发)

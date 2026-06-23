@@ -313,3 +313,41 @@ pub fn draw_controls_hint() {
 	w := r.measure_text(hint, 14)
 	r.draw_text(hint, sw / 2 - w / 2, sh - 16, 14, r.Color{200, 200, 200, 180})
 }
+
+// 在屏幕空间绘制敌人头顶血条
+pub fn draw_enemy_health_bars(game &Game) {
+	for e in game.enemies {
+		if e.state == .dead || e.state == .dying {
+			continue
+		}
+		// 血条挂在敌人头顶上方
+		world_pos := r.Vector3{e.pos.x, e.pos.y + e.size * 0.6, e.pos.z}
+		screen_pos := r.get_world_to_screen(world_pos, game.camera)
+
+		// 简单裁剪: 远离屏幕时不不绘制
+		sw := r.get_screen_width()
+		sh := r.get_screen_height()
+		if screen_pos.x < -60 || screen_pos.x > sw + 60 || screen_pos.y < -60 || screen_pos.y > sh + 60 {
+			continue
+		}
+
+		bar_w := 40
+		bar_h := 5
+		x := int(screen_pos.x) - bar_w / 2
+		y := int(screen_pos.y) - bar_h / 2
+		ratio := f32(e.hp) / f32(e.max_hp)
+
+		col := if ratio > 0.5 {
+			r.Color{0, 220, 80, 220}
+		} else if ratio > 0.25 {
+			r.Color{255, 200, 0, 220}
+		} else {
+			r.Color{220, 50, 50, 220}
+		}
+
+		// 背景边框
+		r.draw_rectangle(x - 1, y - 1, bar_w + 2, bar_h + 2, r.Color{0, 0, 0, 180})
+		// 血量前景
+		r.draw_rectangle(x, y, int(f32(bar_w) * ratio), bar_h, col)
+	}
+}

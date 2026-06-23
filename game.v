@@ -42,6 +42,7 @@ pub mut:
 	kills_total       int
 	level_kills       int   // 本关已击杀
 	hits_display      []HitMarker
+	particles         []Particle
 }
 
 // HitMarker - 击中敌人时的短暂视觉标记 (屏幕中心的红点 + 朝向被击中方向的箭头)
@@ -95,10 +96,11 @@ pub fn (mut game Game) load_level(idx int) {
 		game.enemies << new_enemy(spawn_pos)
 	}
 
-	// 清除上一关遗留的命中标记
+	// 清除上一关遗留的命中标记和粒子
 	game.hits_display = []
+	game.particles = []
 
-	game.state = .level_transition
+	game.state = .playing
 	game.state_timer = 0
 }
 

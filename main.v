@@ -26,6 +26,10 @@ module main
 import raylib as r
 import math
 
+const ground_y = f32(0.4)
+const jump_speed = f32(4.5)
+const gravity = f32(12.0)
+
 fn main() {
 	r.set_trace_log_level(int(r.TraceLogLevel.log_error))
 	r.init_window(1280, 720, 'raylib_doom - DOOM-style FPS in V')
@@ -60,15 +64,39 @@ fn new_camera() r.Camera {
 fn update_game(mut game Game, dt f32) {
 	match game.state {
 		.playing {
-			// 由 raylib 处理 WASD / Shift / Space / Ctrl / 鼠标 转向
+			// 由 raylib 处理 WASD / Shift / Ctrl / 鼠标 转向
+			// Space 我们自己处理, 实现有重力的跳跃
 			old_pos := game.camera.position
 			r.update_camera(&game.camera, int(r.CameraMode.camera_first_person))
-			// 应用玩家与墙体的碰撞 (沿 X / Z 单独检测, 撞墙回退)
+
+			// raylib 同时修改了 position 和 target;我们保留它的朝向,
+			// 但用自己的碰撞与跳跃物理覆盖位置
+			raylib_pos := game.camera.position
+			raylib_target := game.camera.target
+
+			// 水平方向碰撞
 			new_x, new_z := game.move_with_collision(old_pos.x, old_pos.z,
-				game.camera.position.x - old_pos.x, game.camera.position.z - old_pos.z, 0.25)
-			game.camera.position.x = new_x
-			game.camera.position.z = new_z
+				raylib_pos.x - old_pos.x, raylib_pos.z - old_pos.z, 0.25)
+
+			// 跳跃 / 重力
+			on_ground := game.player.pos.y <= ground_y + 0.01
+			if r.is_key_pressed(int(r.KeyboardKey.key_space)) && on_ground {
+				game.player.velocity_y = jump_speed
+			}
+			game.player.velocity_y -= gravity * dt
+			mut new_y := old_pos.y + game.player.velocity_y * dt
+			if new_y < ground_y {
+				new_y = ground_y
+				game.player.velocity_y = 0
+			}
+
+			game.camera.position = r.Vector3{new_x, new_y, new_z}
 			game.player.pos = game.camera.position
+
+			// 让 target 跟随 position 的修正, 保持视线方向稳定
+			game.camera.target.x = raylib_target.x + (new_x - raylib_pos.x)
+			game.camera.target.y = raylib_target.y + (new_y - raylib_pos.y)
+			game.camera.target.z = raylib_target.z + (new_z - raylib_pos.z)
 
 			// 输入: 开火
 			if r.is_mouse_button_down(int(r.MouseButton.mouse_button_left)) {
@@ -96,6 +124,9 @@ fn update_game(mut game Game, dt f32) {
 			}
 			// 清理过期标记
 			game.hits_display = game.hits_display.filter(it.life > 0)
+
+			// 更新命中粒子
+			game.update_particles(dt)
 
 			// 检查关卡完成
 			mut alive := 0
@@ -155,6 +186,7 @@ fn perform_player_fire(mut game Game) {
 	mut best_dist := f32(math.max_f32)
 	mut hit_index := -1
 	mut hit_point := r.Vector3{}
+	mut hit_normal := r.Vector3{}
 	for i in 0 .. game.enemies.len {
 		e := game.enemies[i]
 		if e.state == .dead || e.state == .dying {
@@ -174,6 +206,7 @@ fn perform_player_fire(mut game Game) {
 			best_dist = col.distance
 			hit_index = i
 			hit_point = col.point
+			hit_normal = col.normal
 		}
 	}
 
@@ -182,6 +215,8 @@ fn perform_player_fire(mut game Game) {
 		if killed {
 			game.kills_total++
 			game.level_kills++
+			// 敌人死亡时产生爆炸粒子
+			spawn_death_particles(mut game, game.enemies[hit_index].pos)
 		}
 		// 添加屏幕上的击中标记
 		game.hits_display << HitMarker{
@@ -190,6 +225,9 @@ fn perform_player_fire(mut game Game) {
 			is_kill: killed
 			pos_3d: hit_point
 		}
+
+		// 在命中点迸发粒子
+		spawn_hit_particles(mut game, hit_point, hit_normal)
 	}
 }
 
@@ -197,7 +235,6 @@ fn perform_player_fire(mut game Game) {
 fn is_player_moving(_ Game) bool {
 	return r.is_key_down(int(r.KeyboardKey.key_w)) || r.is_key_down(int(r.KeyboardKey.key_a))
 		|| r.is_key_down(int(r.KeyboardKey.key_s)) || r.is_key_down(int(r.KeyboardKey.key_d))
-		|| r.is_key_down(int(r.KeyboardKey.key_space))
 }
 
 // 主渲染: 3D 场景 + 武器 + HUD + 状态覆盖
@@ -243,12 +280,18 @@ fn draw_game(game &Game) {
 					r.Color{20, 20, 20, 255})
 			}
 
+			// 绘制命中粒子
+			draw_particles(game)
+
 			// 绘制武器视图模型
 			if game.state == .playing || game.state == .level_transition {
 				draw_weapon(game)
 			}
 		}
 		r.end_mode_3d()
+
+		// 敌人头顶血条 (2D 屏幕空间)
+		draw_enemy_health_bars(game)
 
 		// HUD (2D)
 		draw_health_panel(game.player)
