@@ -262,11 +262,16 @@ fn draw_game(game &Game) {
 					continue
 				}
 				body_col := if e.hit_flash > 0.1 {
-					r.Color{255, 255, 255, 255}
+					r.Color{255, 80, 80, 255} // 受击红闪
 				} else if e.state == .attack {
 					r.Color{220, 80, 80, 255} // 攻击状态偏红
 				} else {
-					r.Color{130, 60, 200, 255} // 紫色身体
+					hp_ratio := f32(e.hp) / f32(e.max_hp)
+					if hp_ratio < 0.3 {
+						r.Color{200, 60, 80, 255} // 低血量变红
+					} else {
+						r.Color{130, 60, 200, 255} // 紫色身体
+					}
 				}
 				r.draw_cube_v(e.pos, r.Vector3{e.size, e.size, e.size}, body_col)
 				// 眼睛: 两个朝向玩家方向的小方块
