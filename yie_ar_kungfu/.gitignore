@@ -1,0 +1,8 @@
+# 编译产物
+yie_ar_kungfu
+*.exe
+*.o
+
+# 临时文件
+*.tmp
+.DS_Store
